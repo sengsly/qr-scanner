@@ -3,241 +3,468 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>QR Scanner</title>
+  <title>Fancy QR Scanner</title>
   <style>
-    :root { --bg:#0b0d12; --card:#121726; --muted:#a7b0c0; --text:#e9eefc; --btn:#2a3350; --btn2:#1b2238; --ok:#28d17c; --warn:#ffcc66; }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(1200px 700px at 20% 0%, #1a2340, var(--bg));
-      color: var(--text);
+    :root{
+      --bg1:#05060a;
+      --bg2:#0b1030;
+      --glass: rgba(255,255,255,.08);
+      --glass2: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.14);
+      --text:#f3f6ff;
+      --muted: rgba(243,246,255,.72);
+      --muted2: rgba(243,246,255,.55);
+      --brand:#7c5cff;
+      --brand2:#2fe6ff;
+      --ok:#28d17c;
+      --warn:#ffcc66;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --r: 22px;
     }
-
-    /* Safe-area padding for iPhone notch + home bar */
-    .wrap {
-      max-width: 860px;
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 20% -10%, rgba(124,92,255,.35), transparent 55%),
+        radial-gradient(900px 600px at 90% 10%, rgba(47,230,255,.25), transparent 55%),
+        radial-gradient(900px 600px at 50% 100%, rgba(40,209,124,.10), transparent 60%),
+        linear-gradient(160deg, var(--bg2), var(--bg1));
+      min-height:100vh;
+    }
+    .wrap{
+      max-width: 980px;
       margin: 0 auto;
       padding:
         calc(16px + env(safe-area-inset-top))
         16px
-        calc(16px + env(safe-area-inset-bottom))
+        calc(18px + env(safe-area-inset-bottom))
         16px;
     }
 
-    .top { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
-    h1 { margin:0; font-size: 20px; letter-spacing: .2px; }
-    .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 12px; }
+    /* Top bar */
+    .top{
+      display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+      margin-bottom: 14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width: 42px; height: 42px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(47,230,255,.85));
+      box-shadow: 0 10px 30px rgba(124,92,255,.25);
+      display:grid; place-items:center;
+      position: relative;
+      overflow:hidden;
+    }
+    .logo::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 45%);
+      transform: rotate(18deg);
+    }
+    .title{
+      display:flex; flex-direction:column; line-height:1.1;
+    }
+    .title h1{ margin:0; font-size: 18px; letter-spacing:.2px; }
+    .title span{ font-size: 12px; color: var(--muted2); margin-top: 3px; }
 
-    .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: 14px; }
-    @media (max-width: 860px){ .grid { grid-template-columns: 1fr; } }
+    .chip{
+      display:flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .spark{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,.25);
+      box-shadow: 0 0 0 6px rgba(255,255,255,.03);
+    }
+    .spark.live{ background: var(--ok); box-shadow: 0 0 0 6px rgba(40,209,124,.12); }
 
-    .card { background: rgba(18,23,38,.9); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-    .cardHd { padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom: 1px solid rgba(255,255,255,.08); }
-    .cardHd b { font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .2px; text-transform: uppercase; }
-    .cardBd { padding: 14px; }
+    /* Layout */
+    .grid{
+      display:grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 14px;
+    }
+    @media (max-width: 920px){ .grid{ grid-template-columns: 1fr; } }
 
-    /* iPhone-friendly camera area */
-    .videoWrap { position: relative; background:#000; border-radius: 16px; overflow:hidden; }
-    video {
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+    }
+    .cardHd{
+      padding: 12px 14px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .cardHd b{
+      font-size: 12px; color: var(--muted); letter-spacing:.18em; text-transform: uppercase;
+    }
+    .badge{
+      font-size: 12px; color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    /* Camera */
+    .cam{
+      padding: 14px;
+    }
+    .frame{
+      position:relative;
+      border-radius: calc(var(--r) - 6px);
+      overflow:hidden;
+      background:#000;
+      border: 1px solid rgba(255,255,255,.14);
+    }
+    video{
       width:100%;
       display:block;
-      background:#000;
-      /* Keeps video nicely framed on tall phones like iPhone 14 Pro Max */
       aspect-ratio: 3 / 4;
       object-fit: cover;
+      background:#000;
     }
-
-    .overlay { position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
-    .scanBox{
-      width:min(74%, 340px); aspect-ratio:1/1;
-      border-radius: 18px;
-      border: 2px solid rgba(233,238,252,.55);
-      box-shadow: 0 0 0 9999px rgba(0,0,0,.35) inset;
+    .scanOverlay{
+      position:absolute; inset:0;
+      display:none;
+      pointer-events:none;
+    }
+    .scanOverlay.on{ display:block; }
+    .vignette{
+      position:absolute; inset:0;
+      background: radial-gradient(circle at 50% 35%, transparent 0 42%, rgba(0,0,0,.55) 70%);
+    }
+    .box{
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+    }
+    .boxInner{
+      width:min(74%, 340px);
+      aspect-ratio:1/1;
+      border-radius: 22px;
+      border: 2px solid rgba(243,246,255,.55);
+      box-shadow:
+        0 0 0 999px rgba(0,0,0,.22) inset,
+        0 0 40px rgba(124,92,255,.20);
       position:relative;
+      overflow:hidden;
+    }
+    .boxInner::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(90deg, rgba(124,92,255,.18), transparent 30%, rgba(47,230,255,.18)),
+        linear-gradient(0deg, rgba(255,255,255,.08), transparent 25%, rgba(255,255,255,.08));
+      mix-blend-mode: screen;
+      opacity:.6;
     }
     .scanLine{
-      position:absolute; left:10%; right:10%; top:15%;
-      height:2px; background: linear-gradient(90deg, transparent, rgba(40,209,124,.9), transparent);
-      animation: sweep 1.6s linear infinite;
-      opacity:.9;
+      position:absolute; left:-20%; right:-20%; top:10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(47,230,255,.95), transparent);
+      filter: drop-shadow(0 0 10px rgba(47,230,255,.55));
+      animation: sweep 1.55s linear infinite;
     }
     @keyframes sweep{
-      0% { transform: translateY(0); }
-      100% { transform: translateY(240px); }
+      0%{ transform: translateY(0); }
+      100%{ transform: translateY(260px); }
     }
 
-    .row { display:flex; gap:10px; flex-wrap:wrap; }
-    button {
-      border: 1px solid rgba(255,255,255,.10);
-      background: var(--btn);
+    /* Buttons */
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    .btn{
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
       color: var(--text);
       padding: 12px 14px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 650;
-      font-size: 16px; /* better on iPhone */
-      min-height: 44px; /* Apple touch target */
-      transition: transform .03s ease, background .15s ease;
-    }
-    button:active { transform: scale(.99); }
-    button.secondary { background: var(--btn2); }
-    button:disabled { opacity: .55; cursor:not-allowed; }
-
-    .tiny { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
-    .resultBox{
-      padding: 12px;
       border-radius: 14px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.08);
+      font-weight: 700;
+      font-size: 15px;
+      min-height: 44px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .04s ease, background .15s ease, border-color .15s ease;
     }
-    .status { display:flex; align-items:center; gap:8px; color: var(--muted); font-size: 13px; margin-bottom: 10px; }
-    .dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,.25); }
-    .dot.ok { background: var(--ok); }
-    .dot.warn { background: var(--warn); }
+    .btn:active{ transform: scale(.99); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(47,230,255,.85));
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 12px 34px rgba(124,92,255,.18);
+    }
+    .btn.ghost{ background: rgba(255,255,255,.06); }
+    .hint{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.35;
+    }
 
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; white-space: pre-wrap; word-break: break-word; }
+    /* Result side */
+    .result{
+      padding: 14px;
+    }
+    .status{
+      display:flex; align-items:center; gap:10px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; background: rgba(255,255,255,.22); }
+    .dot.ok{ background: var(--ok); box-shadow: 0 0 0 6px rgba(40,209,124,.12); }
+    .dot.warn{ background: var(--warn); box-shadow: 0 0 0 6px rgba(255,204,102,.12); }
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      color: rgba(243,246,255,.92);
+    }
+    .panel{
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    .pillType{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      background: rgba(0,0,0,.55);
+      color: rgba(243,246,255,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 10px 12px;
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 14px 50px rgba(0,0,0,.5);
+      opacity:0; pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.on{ opacity:1; transform: translateX(-50%) translateY(-6px); }
+
+    .footer{
+      margin-top: 14px;
+      color: rgba(243,246,255,.40);
+      font-size: 11px;
+      text-align:center;
+    }
+
+    /* Small icons (pure CSS) */
+    .i{ width: 16px; height: 16px; display:inline-block; position:relative; }
+    .i.play::before{ content:""; position:absolute; inset:2px 3px 2px 6px; border-left: 10px solid #fff; border-top:7px solid transparent; border-bottom:7px solid transparent; opacity:.9; }
+    .i.stop{ border:2px solid rgba(255,255,255,.85); border-radius:4px; }
+    .i.flip::before{ content:""; position:absolute; inset:2px; border:2px solid rgba(255,255,255,.85); border-left-color: transparent; border-radius: 999px; }
+    .i.flip::after{ content:""; position:absolute; right:1px; top:3px; width:0; height:0; border-left:6px solid rgba(255,255,255,.85); border-top:4px solid transparent; border-bottom:4px solid transparent; transform: rotate(10deg); }
+    .i.copy::before{ content:""; position:absolute; left:3px; top:4px; width:9px; height:10px; border:2px solid rgba(255,255,255,.85); border-radius:3px; }
+    .i.copy::after{ content:""; position:absolute; left:6px; top:2px; width:9px; height:10px; border:2px solid rgba(255,255,255,.45); border-radius:3px; background: transparent; }
+    .i.link::before{ content:""; position:absolute; left:1px; top:7px; width:8px; height:8px; border:2px solid rgba(255,255,255,.85); border-right-color: transparent; border-top-color: transparent; border-radius: 4px; transform: rotate(45deg); }
+    .i.link::after{ content:""; position:absolute; right:1px; top:1px; width:8px; height:8px; border:2px solid rgba(255,255,255,.85); border-left-color: transparent; border-bottom-color: transparent; border-radius: 4px; transform: rotate(45deg); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
-      <h1>📷 QR Scanner</h1>
-      <div class="pill">iPhone-friendly (safe area + inline camera)</div>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">▦</div>
+        <div class="title">
+          <h1>Fancy QR Scanner</h1>
+          <span>Glass UI • iPhone safe-area • Copy + Open</span>
+        </div>
+      </div>
+      <div class="chip"><span class="spark" id="spark"></span><span id="chipText">Idle</span></div>
     </div>
 
     <div class="grid">
-      <div class="card">
+      <!-- Camera card -->
+      <section class="card">
         <div class="cardHd">
           <b>Camera</b>
-          <span class="pill" id="camLabel">Not started</span>
+          <span class="badge" id="camLabel">Not started</span>
         </div>
-        <div class="cardBd">
-          <div class="videoWrap">
-            <!-- iOS: playsinline + muted helps avoid fullscreen / autoplay issues -->
+        <div class="cam">
+          <div class="frame">
             <video id="preview" playsinline muted></video>
-            <div class="overlay" id="overlay" style="display:none;">
-              <div class="scanBox"><div class="scanLine"></div></div>
+            <div class="scanOverlay" id="scanOverlay">
+              <div class="vignette"></div>
+              <div class="box">
+                <div class="boxInner">
+                  <div class="scanLine"></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style="height:12px"></div>
-          <div class="row">
-            <button id="startBtn">Start</button>
-            <button id="stopBtn" class="secondary" disabled>Stop</button>
-            <button id="flipBtn" class="secondary" disabled>Flip</button>
-            <button id="rescanBtn" class="secondary" disabled>Rescan</button>
+          <div class="controls">
+            <button class="btn primary" id="startBtn"><span class="i play"></span>Start</button>
+            <button class="btn ghost" id="stopBtn" disabled><span class="i stop"></span>Stop</button>
+            <button class="btn ghost" id="flipBtn" disabled><span class="i flip"></span>Flip</button>
+            <button class="btn ghost" id="rescanBtn" disabled>Rescan</button>
           </div>
 
-          <div class="tiny">
-            On iPhone: if you denied camera permission before, go to <b>Settings → Safari → Camera → Allow</b>.
+          <div class="hint">
+            Works best on iPhone when opened via HTTPS (GitHub Pages). If camera was denied before: iPhone Settings → Safari → Camera → Allow.
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
+      <!-- Result card -->
+      <section class="card">
         <div class="cardHd">
           <b>Result</b>
-          <span class="pill" id="typePill">—</span>
+          <span class="badge" id="typeBadge">—</span>
         </div>
-        <div class="cardBd">
+        <div class="result">
           <div class="status">
             <span class="dot" id="dot"></span>
-            <span id="statusText">Waiting for scan…</span>
+            <span id="statusText">Ready to scan.</span>
           </div>
 
-          <div class="resultBox">
+          <div class="panel">
+            <div class="pillType" id="pillType">No data</div>
+            <div style="height:10px"></div>
             <div class="mono" id="text">Nothing scanned yet.</div>
           </div>
 
-          <div style="height:12px"></div>
           <div class="row">
-            <button id="copyBtn" disabled>Copy</button>
-            <button id="openBtn" disabled>Open link</button>
+            <button class="btn ghost" id="copyBtn" disabled><span class="i copy"></span>Copy</button>
+            <button class="btn ghost" id="openBtn" disabled><span class="i link"></span>Open</button>
           </div>
 
-          <div class="tiny">
-            “Open link” only enables for http/https QR codes.
+          <div class="hint">
+            “Open” becomes available only when the QR content is an http/https link.
           </div>
         </div>
-      </div>
+      </section>
     </div>
+
+    <div class="footer">Built with browser camera + QR decoding (no server needed).</div>
   </div>
+
+  <div class="toast" id="toast">Copied!</div>
 
   <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
   <script>
     const video = document.getElementById('preview');
-    const overlay = document.getElementById('overlay');
-    const camLabel = document.getElementById('camLabel');
+    const scanOverlay = document.getElementById('scanOverlay');
 
     const startBtn = document.getElementById('startBtn');
     const stopBtn  = document.getElementById('stopBtn');
     const flipBtn  = document.getElementById('flipBtn');
     const rescanBtn= document.getElementById('rescanBtn');
 
-    const textEl   = document.getElementById('text');
-    const copyBtn  = document.getElementById('copyBtn');
-    const openBtn  = document.getElementById('openBtn');
-    const typePill = document.getElementById('typePill');
+    const camLabel = document.getElementById('camLabel');
+    const typeBadge= document.getElementById('typeBadge');
+    const pillType = document.getElementById('pillType');
 
-    const dot      = document.getElementById('dot');
+    const dot = document.getElementById('dot');
     const statusText = document.getElementById('statusText');
+    const textEl = document.getElementById('text');
+
+    const copyBtn = document.getElementById('copyBtn');
+    const openBtn = document.getElementById('openBtn');
+
+    const toast = document.getElementById('toast');
+    const spark = document.getElementById('spark');
+    const chipText = document.getElementById('chipText');
 
     let scanner;
-    let preferredCamera = 'environment'; // back camera is best on iPhone
+    let preferredCamera = 'environment';
     let lastValue = '';
     let locked = false;
 
-    function setStatus(kind, msg) {
+    function setChip(live, label){
+      spark.classList.toggle('live', !!live);
+      chipText.textContent = label;
+    }
+
+    function setStatus(kind, msg){
       dot.className = 'dot' + (kind ? ` ${kind}` : '');
       statusText.textContent = msg;
     }
 
-    function isUrl(value) {
+    function isUrl(v){
       try {
-        const u = new URL(value);
+        const u = new URL(v);
         return u.protocol === 'http:' || u.protocol === 'https:';
       } catch { return false; }
     }
 
-    function showResult(value) {
+    function showToast(msg){
+      toast.textContent = msg;
+      toast.classList.add('on');
+      setTimeout(() => toast.classList.remove('on'), 1200);
+    }
+
+    function showResult(value){
       lastValue = value;
       textEl.textContent = value;
 
       const url = isUrl(value);
-      typePill.textContent = url ? 'URL' : 'TEXT';
+      typeBadge.textContent = url ? 'URL' : 'TEXT';
+      pillType.textContent = url ? '🔗 Link detected' : '📝 Text detected';
 
       copyBtn.disabled = !value;
       openBtn.disabled = !url;
 
-      setStatus('ok', 'Scanned!');
+      setStatus('ok', 'Scan successful.');
+      setChip(false, 'Scanned');
     }
 
-    async function start() {
-      if (!window.isSecureContext) {
+    async function start(){
+      if (!window.isSecureContext){
         alert("Camera needs HTTPS (GitHub Pages is HTTPS).");
         return;
       }
 
-      if (!scanner) {
+      if (!scanner){
         scanner = new QrScanner(
           video,
-          result => {
+          (result) => {
             const value = (result?.data ?? result ?? '').trim();
             if (!value || locked) return;
             locked = true;
 
             showResult(value);
 
-            // stop after one scan (prevents repeated scans)
+            // stop after one scan to prevent repeated firing
             scanner.stop();
-            overlay.style.display = 'none';
+            scanOverlay.classList.remove('on');
 
             startBtn.disabled = false;
             stopBtn.disabled = true;
             flipBtn.disabled = false;
             rescanBtn.disabled = false;
+
+            try { navigator.vibrate?.(60); } catch {}
           },
           { preferredCamera }
         );
@@ -245,55 +472,66 @@
         await scanner.setCamera(preferredCamera);
       }
 
-      try {
+      try{
         await scanner.start();
-        overlay.style.display = 'grid';
-        camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
 
-        setStatus('', 'Scanning…');
-        typePill.textContent = '—';
+        locked = false;
+        scanOverlay.classList.add('on');
+
+        camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
+        setStatus('', 'Scanning… align code in the box.');
+        setChip(true, 'Live');
+        typeBadge.textContent = '—';
+        pillType.textContent = 'Scanning…';
 
         startBtn.disabled = true;
         stopBtn.disabled = false;
         flipBtn.disabled = false;
         rescanBtn.disabled = true;
 
-        locked = false;
-      } catch (e) {
+      } catch(e){
         console.error(e);
         setStatus('warn', 'Camera failed. Check permission.');
-        alert("Could not start camera. Check permissions and reload.");
+        setChip(false, 'Blocked');
+        alert("Could not start camera. Please allow camera permission and reload.");
       }
     }
 
-    async function stop() {
+    async function stop(){
       if (scanner) await scanner.stop();
-      overlay.style.display = 'none';
-      camLabel.textContent = 'Stopped';
+      scanOverlay.classList.remove('on');
 
       setStatus('', 'Stopped.');
+      setChip(false, 'Idle');
+      camLabel.textContent = 'Stopped';
+
       startBtn.disabled = false;
       stopBtn.disabled = true;
       flipBtn.disabled = true;
       rescanBtn.disabled = !lastValue;
     }
 
-    async function flip() {
+    async function flip(){
       preferredCamera = (preferredCamera === 'environment') ? 'user' : 'environment';
       camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
-      if (scanner && startBtn.disabled) await scanner.setCamera(preferredCamera);
+
+      // if currently scanning, switch camera live
+      if (scanner && startBtn.disabled){
+        await scanner.setCamera(preferredCamera);
+      }
     }
 
-    async function rescan() {
+    async function rescan(){
       locked = false;
       await start();
     }
 
-    async function copy() {
+    async function copy(){
       if (!lastValue) return;
-      try {
+      try{
         await navigator.clipboard.writeText(lastValue);
-        setStatus('ok', 'Copied ✅');
+        showToast("Copied!");
+        setStatus('ok', 'Copied to clipboard.');
       } catch {
         const ta = document.createElement('textarea');
         ta.value = lastValue;
@@ -301,13 +539,14 @@
         ta.select();
         document.execCommand('copy');
         ta.remove();
-        setStatus('ok', 'Copied ✅');
+        showToast("Copied!");
+        setStatus('ok', 'Copied to clipboard.');
       }
     }
 
-    function openLink() {
+    function openLink(){
       if (!isUrl(lastValue)) return;
-      // iOS: using same-tab navigation is often smoother
+      // iPhone: same-tab navigation is smooth
       window.location.href = lastValue;
     }
 
