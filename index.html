@@ -5,36 +5,142 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QR Scanner</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    .wrap { max-width: 720px; margin: 0 auto; }
-    video { width: 100%; border-radius: 12px; background: #000; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-    button {
-      border: 0; padding: 10px 14px; border-radius: 10px; cursor: pointer;
-      background: #111; color: #fff; font-weight: 600;
+    :root { --bg:#0b0d12; --card:#121726; --muted:#a7b0c0; --text:#e9eefc; --btn:#2a3350; --btn2:#1b2238; --ok:#28d17c; --warn:#ffcc66; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 700px at 20% 0%, #1a2340, var(--bg)); color: var(--text); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 18px; }
+    .top { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    h1 { margin:0; font-size: 20px; letter-spacing: .2px; }
+    .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 12px; }
+    .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: 14px; }
+    @media (max-width: 860px){ .grid { grid-template-columns: 1fr; } }
+
+    .card { background: rgba(18,23,38,.9); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    .cardHd { padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .cardHd b { font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .2px; text-transform: uppercase; }
+    .cardBd { padding: 14px; }
+
+    .videoWrap { position: relative; background:#000; border-radius: 16px; overflow:hidden; }
+    video { width:100%; height:auto; display:block; }
+    .overlay {
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      pointer-events:none;
     }
-    button.secondary { background: #eee; color: #111; }
-    #result { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f6f6f6; }
-    .hint { color: #555; font-size: 14px; margin-top: 8px; }
-    a { word-break: break-all; }
+    .scanBox{
+      width:min(72%, 340px); aspect-ratio:1/1;
+      border-radius: 18px;
+      border: 2px solid rgba(233,238,252,.55);
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.35) inset;
+      position:relative;
+    }
+    .scanLine{
+      position:absolute; left:10%; right:10%; top:15%;
+      height:2px; background: linear-gradient(90deg, transparent, rgba(40,209,124,.9), transparent);
+      animation: sweep 1.6s linear infinite;
+      opacity:.9;
+    }
+    @keyframes sweep{
+      0% { transform: translateY(0); }
+      100% { transform: translateY(240px); }
+    }
+
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    button {
+      border: 1px solid rgba(255,255,255,.10);
+      background: var(--btn);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 650;
+      transition: transform .03s ease, background .15s ease;
+    }
+    button:active { transform: scale(.99); }
+    button.secondary { background: var(--btn2); }
+    button:disabled { opacity: .55; cursor:not-allowed; }
+    .tiny { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+
+    .resultBox{
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .status { display:flex; align-items:center; gap:8px; color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,.25); }
+    .dot.ok { background: var(--ok); }
+    .dot.warn { background: var(--warn); }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; white-space: pre-wrap; word-break: break-word; }
+    a { color: #9ad0ff; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h2>QR Scanner (Phone Camera)</h2>
-
-    <video id="preview" playsinline></video>
-
-    <div class="row">
-      <button id="startBtn">Start camera</button>
-      <button id="stopBtn" class="secondary" disabled>Stop</button>
-      <button id="flipBtn" class="secondary" disabled>Flip camera</button>
+    <div class="top">
+      <h1>📷 QR Scanner</h1>
+      <div class="pill">Tip: works on HTTPS (GitHub Pages is OK)</div>
     </div>
 
-    <div id="result">
-      <strong>Result:</strong>
-      <div id="text">Nothing scanned yet.</div>
-      <div class="hint">Tip: allow camera permission. Use HTTPS or localhost.</div>
+    <div class="grid">
+      <!-- Camera -->
+      <div class="card">
+        <div class="cardHd">
+          <b>Camera</b>
+          <span class="pill" id="camLabel">Not started</span>
+        </div>
+        <div class="cardBd">
+          <div class="videoWrap">
+            <video id="preview" playsinline></video>
+            <div class="overlay" id="overlay" style="display:none;">
+              <div class="scanBox">
+                <div class="scanLine"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="startBtn">Start</button>
+            <button id="stopBtn" class="secondary" disabled>Stop</button>
+            <button id="flipBtn" class="secondary" disabled>Flip</button>
+            <button id="rescanBtn" class="secondary" disabled>Rescan</button>
+          </div>
+
+          <div class="tiny">
+            If camera doesn’t open: open your GitHub Pages URL (https), then allow camera permission.
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="card">
+        <div class="cardHd">
+          <b>Result</b>
+          <span class="pill" id="typePill">—</span>
+        </div>
+        <div class="cardBd">
+          <div class="status">
+            <span class="dot" id="dot"></span>
+            <span id="statusText">Waiting for scan…</span>
+          </div>
+
+          <div class="resultBox">
+            <div class="mono" id="text">Nothing scanned yet.</div>
+          </div>
+
+          <div style="height:12px"></div>
+          <div class="row">
+            <button id="copyBtn" disabled>Copy</button>
+            <button id="openBtn" disabled>Open link</button>
+          </div>
+
+          <div class="tiny" id="hint">
+            Copy will copy the QR content. “Open link” appears only for URLs.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -42,77 +148,181 @@
   <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
   <script>
     const video = document.getElementById('preview');
+
+    const overlay = document.getElementById('overlay');
+    const camLabel = document.getElementById('camLabel');
+
     const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const flipBtn = document.getElementById('flipBtn');
-    const textEl = document.getElementById('text');
+    const stopBtn  = document.getElementById('stopBtn');
+    const flipBtn  = document.getElementById('flipBtn');
+    const rescanBtn= document.getElementById('rescanBtn');
+
+    const textEl   = document.getElementById('text');
+    const copyBtn  = document.getElementById('copyBtn');
+    const openBtn  = document.getElementById('openBtn');
+    const typePill = document.getElementById('typePill');
+
+    const dot      = document.getElementById('dot');
+    const statusText = document.getElementById('statusText');
 
     let scanner;
-    let preferredCamera = 'environment'; // back camera by default
+    let preferredCamera = 'environment';
+    let lastValue = '';
+    let locked = false;
 
-    function setResult(value) {
-      // If it looks like a URL, make it clickable
+    function setStatus(kind, msg) {
+      dot.className = 'dot' + (kind ? ` ${kind}` : '');
+      statusText.textContent = msg;
+    }
+
+    function isProbablyUrl(value) {
       try {
-        const url = new URL(value);
-        textEl.innerHTML = `<a href="${url.href}" target="_blank" rel="noopener">${url.href}</a>`;
+        const u = new URL(value);
+        return u.protocol === 'http:' || u.protocol === 'https:';
       } catch {
-        textEl.textContent = value;
+        return false;
       }
+    }
+
+    function showResult(value) {
+      lastValue = value;
+      textEl.textContent = value;
+
+      const isUrl = isProbablyUrl(value);
+      typePill.textContent = isUrl ? 'URL' : 'TEXT';
+
+      copyBtn.disabled = !value;
+      openBtn.disabled = !isUrl;
+
+      setStatus('ok', 'Scanned!');
+    }
+
+    function notifyScan() {
+      // small “success” feedback
+      try { navigator.vibrate?.(80); } catch {}
+      // optional beep (may be blocked until user interacts)
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.value = 880;
+        g.gain.value = 0.05;
+        o.start();
+        setTimeout(() => { o.stop(); ctx.close(); }, 90);
+      } catch {}
     }
 
     async function start() {
       if (!window.isSecureContext) {
-        alert("Camera access requires HTTPS (or http://localhost).");
+        alert("Camera needs HTTPS (or localhost). GitHub Pages is HTTPS.");
         return;
       }
 
       if (!scanner) {
         scanner = new QrScanner(
           video,
-          result => setResult(result.data ?? result),
-          {
-            // highlightScanRegion: true,
-            // highlightCodeOutline: true,
-            preferredCamera
-          }
+          result => {
+            const value = (result?.data ?? result ?? '').trim();
+            if (!value) return;
+
+            // prevent repeated fires
+            if (locked) return;
+            locked = true;
+
+            showResult(value);
+            notifyScan();
+
+            // stop scanning until user hits Rescan
+            scanner.stop();
+            overlay.style.display = 'none';
+            camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
+
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            flipBtn.disabled = false;
+            rescanBtn.disabled = false;
+          },
+          { preferredCamera }
         );
       } else {
-        scanner.setCamera(preferredCamera);
+        await scanner.setCamera(preferredCamera);
       }
 
       try {
         await scanner.start();
+        overlay.style.display = 'grid';
+        camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
+
+        setStatus('', 'Scanning…');
+        typePill.textContent = '—';
+
         startBtn.disabled = true;
         stopBtn.disabled = false;
         flipBtn.disabled = false;
+        rescanBtn.disabled = true;
+        locked = false;
       } catch (e) {
         console.error(e);
-        alert("Could not start camera. Check permissions and HTTPS.");
+        setStatus('warn', 'Camera failed. Check permission.');
+        alert("Could not start camera. Check permissions and ensure you're on HTTPS.");
       }
     }
 
     async function stop() {
-      if (scanner) {
-        await scanner.stop();
-      }
+      if (scanner) await scanner.stop();
+      overlay.style.display = 'none';
+      camLabel.textContent = 'Stopped';
+
+      setStatus('', 'Stopped.');
       startBtn.disabled = false;
       stopBtn.disabled = true;
       flipBtn.disabled = true;
+      rescanBtn.disabled = !lastValue ? true : false;
     }
 
     async function flip() {
       preferredCamera = (preferredCamera === 'environment') ? 'user' : 'environment';
-      if (scanner) {
+      camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
+      if (scanner && startBtn.disabled) { // currently scanning
         await scanner.setCamera(preferredCamera);
       }
+    }
+
+    async function rescan() {
+      locked = false;
+      await start();
+    }
+
+    async function copy() {
+      if (!lastValue) return;
+      try {
+        await navigator.clipboard.writeText(lastValue);
+        setStatus('ok', 'Copied to clipboard ✅');
+      } catch {
+        // fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = lastValue;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        setStatus('ok', 'Copied ✅');
+      }
+    }
+
+    function openLink() {
+      if (!isProbablyUrl(lastValue)) return;
+      window.open(lastValue, '_blank', 'noopener');
     }
 
     startBtn.addEventListener('click', start);
     stopBtn.addEventListener('click', stop);
     flipBtn.addEventListener('click', flip);
-
-    // Auto-start on load (optional). Comment out if you don't want this.
-    // start();
+    rescanBtn.addEventListener('click', rescan);
+    copyBtn.addEventListener('click', copy);
+    openBtn.addEventListener('click', openLink);
   </script>
 </body>
 </html>
