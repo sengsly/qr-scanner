@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR Scanner</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    video { width: 100%; border-radius: 12px; background: #000; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      border: 0; padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      background: #111; color: #fff; font-weight: 600;
+    }
+    button.secondary { background: #eee; color: #111; }
+    #result { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f6f6f6; }
+    .hint { color: #555; font-size: 14px; margin-top: 8px; }
+    a { word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>QR Scanner (Phone Camera)</h2>
+
+    <video id="preview" playsinline></video>
+
+    <div class="row">
+      <button id="startBtn">Start camera</button>
+      <button id="stopBtn" class="secondary" disabled>Stop</button>
+      <button id="flipBtn" class="secondary" disabled>Flip camera</button>
+    </div>
+
+    <div id="result">
+      <strong>Result:</strong>
+      <div id="text">Nothing scanned yet.</div>
+      <div class="hint">Tip: allow camera permission. Use HTTPS or localhost.</div>
+    </div>
+  </div>
+
+  <!-- QR scanner library -->
+  <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+  <script>
+    const video = document.getElementById('preview');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const flipBtn = document.getElementById('flipBtn');
+    const textEl = document.getElementById('text');
+
+    let scanner;
+    let preferredCamera = 'environment'; // back camera by default
+
+    function setResult(value) {
+      // If it looks like a URL, make it clickable
+      try {
+        const url = new URL(value);
+        textEl.innerHTML = `<a href="${url.href}" target="_blank" rel="noopener">${url.href}</a>`;
+      } catch {
+        textEl.textContent = value;
+      }
+    }
+
+    async function start() {
+      if (!window.isSecureContext) {
+        alert("Camera access requires HTTPS (or http://localhost).");
+        return;
+      }
+
+      if (!scanner) {
+        scanner = new QrScanner(
+          video,
+          result => setResult(result.data ?? result),
+          {
+            // highlightScanRegion: true,
+            // highlightCodeOutline: true,
+            preferredCamera
+          }
+        );
+      } else {
+        scanner.setCamera(preferredCamera);
+      }
+
+      try {
+        await scanner.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        flipBtn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        alert("Could not start camera. Check permissions and HTTPS.");
+      }
+    }
+
+    async function stop() {
+      if (scanner) {
+        await scanner.stop();
+      }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      flipBtn.disabled = true;
+    }
+
+    async function flip() {
+      preferredCamera = (preferredCamera === 'environment') ? 'user' : 'environment';
+      if (scanner) {
+        await scanner.setCamera(preferredCamera);
+      }
+    }
+
+    startBtn.addEventListener('click', start);
+    stopBtn.addEventListener('click', stop);
+    flipBtn.addEventListener('click', flip);
+
+    // Auto-start on load (optional). Comment out if you don't want this.
+    // start();
+  </script>
+</body>
+</html>
