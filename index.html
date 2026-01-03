@@ -2,16 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>QR Scanner</title>
   <style>
     :root { --bg:#0b0d12; --card:#121726; --muted:#a7b0c0; --text:#e9eefc; --btn:#2a3350; --btn2:#1b2238; --ok:#28d17c; --warn:#ffcc66; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 700px at 20% 0%, #1a2340, var(--bg)); color: var(--text); }
-    .wrap { max-width: 860px; margin: 0 auto; padding: 18px; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 0%, #1a2340, var(--bg));
+      color: var(--text);
+    }
+
+    /* Safe-area padding for iPhone notch + home bar */
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding:
+        calc(16px + env(safe-area-inset-top))
+        16px
+        calc(16px + env(safe-area-inset-bottom))
+        16px;
+    }
+
     .top { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
     h1 { margin:0; font-size: 20px; letter-spacing: .2px; }
     .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 12px; }
+
     .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: 14px; }
     @media (max-width: 860px){ .grid { grid-template-columns: 1fr; } }
 
@@ -20,15 +38,20 @@
     .cardHd b { font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .2px; text-transform: uppercase; }
     .cardBd { padding: 14px; }
 
+    /* iPhone-friendly camera area */
     .videoWrap { position: relative; background:#000; border-radius: 16px; overflow:hidden; }
-    video { width:100%; height:auto; display:block; }
-    .overlay {
-      position:absolute; inset:0;
-      display:grid; place-items:center;
-      pointer-events:none;
+    video {
+      width:100%;
+      display:block;
+      background:#000;
+      /* Keeps video nicely framed on tall phones like iPhone 14 Pro Max */
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
     }
+
+    .overlay { position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
     .scanBox{
-      width:min(72%, 340px); aspect-ratio:1/1;
+      width:min(74%, 340px); aspect-ratio:1/1;
       border-radius: 18px;
       border: 2px solid rgba(233,238,252,.55);
       box-shadow: 0 0 0 9999px rgba(0,0,0,.35) inset;
@@ -50,17 +73,19 @@
       border: 1px solid rgba(255,255,255,.10);
       background: var(--btn);
       color: var(--text);
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-radius: 12px;
       cursor: pointer;
       font-weight: 650;
+      font-size: 16px; /* better on iPhone */
+      min-height: 44px; /* Apple touch target */
       transition: transform .03s ease, background .15s ease;
     }
     button:active { transform: scale(.99); }
     button.secondary { background: var(--btn2); }
     button:disabled { opacity: .55; cursor:not-allowed; }
-    .tiny { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
 
+    .tiny { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
     .resultBox{
       padding: 12px;
       border-radius: 14px;
@@ -73,18 +98,16 @@
     .dot.warn { background: var(--warn); }
 
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; white-space: pre-wrap; word-break: break-word; }
-    a { color: #9ad0ff; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <h1>📷 QR Scanner</h1>
-      <div class="pill">Tip: works on HTTPS (GitHub Pages is OK)</div>
+      <div class="pill">iPhone-friendly (safe area + inline camera)</div>
     </div>
 
     <div class="grid">
-      <!-- Camera -->
       <div class="card">
         <div class="cardHd">
           <b>Camera</b>
@@ -92,11 +115,10 @@
         </div>
         <div class="cardBd">
           <div class="videoWrap">
-            <video id="preview" playsinline></video>
+            <!-- iOS: playsinline + muted helps avoid fullscreen / autoplay issues -->
+            <video id="preview" playsinline muted></video>
             <div class="overlay" id="overlay" style="display:none;">
-              <div class="scanBox">
-                <div class="scanLine"></div>
-              </div>
+              <div class="scanBox"><div class="scanLine"></div></div>
             </div>
           </div>
 
@@ -109,12 +131,11 @@
           </div>
 
           <div class="tiny">
-            If camera doesn’t open: open your GitHub Pages URL (https), then allow camera permission.
+            On iPhone: if you denied camera permission before, go to <b>Settings → Safari → Camera → Allow</b>.
           </div>
         </div>
       </div>
 
-      <!-- Result -->
       <div class="card">
         <div class="cardHd">
           <b>Result</b>
@@ -136,19 +157,17 @@
             <button id="openBtn" disabled>Open link</button>
           </div>
 
-          <div class="tiny" id="hint">
-            Copy will copy the QR content. “Open link” appears only for URLs.
+          <div class="tiny">
+            “Open link” only enables for http/https QR codes.
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- QR scanner library -->
   <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
   <script>
     const video = document.getElementById('preview');
-
     const overlay = document.getElementById('overlay');
     const camLabel = document.getElementById('camLabel');
 
@@ -166,7 +185,7 @@
     const statusText = document.getElementById('statusText');
 
     let scanner;
-    let preferredCamera = 'environment';
+    let preferredCamera = 'environment'; // back camera is best on iPhone
     let lastValue = '';
     let locked = false;
 
@@ -175,48 +194,29 @@
       statusText.textContent = msg;
     }
 
-    function isProbablyUrl(value) {
+    function isUrl(value) {
       try {
         const u = new URL(value);
         return u.protocol === 'http:' || u.protocol === 'https:';
-      } catch {
-        return false;
-      }
+      } catch { return false; }
     }
 
     function showResult(value) {
       lastValue = value;
       textEl.textContent = value;
 
-      const isUrl = isProbablyUrl(value);
-      typePill.textContent = isUrl ? 'URL' : 'TEXT';
+      const url = isUrl(value);
+      typePill.textContent = url ? 'URL' : 'TEXT';
 
       copyBtn.disabled = !value;
-      openBtn.disabled = !isUrl;
+      openBtn.disabled = !url;
 
       setStatus('ok', 'Scanned!');
     }
 
-    function notifyScan() {
-      // small “success” feedback
-      try { navigator.vibrate?.(80); } catch {}
-      // optional beep (may be blocked until user interacts)
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine';
-        o.frequency.value = 880;
-        g.gain.value = 0.05;
-        o.start();
-        setTimeout(() => { o.stop(); ctx.close(); }, 90);
-      } catch {}
-    }
-
     async function start() {
       if (!window.isSecureContext) {
-        alert("Camera needs HTTPS (or localhost). GitHub Pages is HTTPS.");
+        alert("Camera needs HTTPS (GitHub Pages is HTTPS).");
         return;
       }
 
@@ -225,19 +225,14 @@
           video,
           result => {
             const value = (result?.data ?? result ?? '').trim();
-            if (!value) return;
-
-            // prevent repeated fires
-            if (locked) return;
+            if (!value || locked) return;
             locked = true;
 
             showResult(value);
-            notifyScan();
 
-            // stop scanning until user hits Rescan
+            // stop after one scan (prevents repeated scans)
             scanner.stop();
             overlay.style.display = 'none';
-            camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
 
             startBtn.disabled = false;
             stopBtn.disabled = true;
@@ -262,11 +257,12 @@
         stopBtn.disabled = false;
         flipBtn.disabled = false;
         rescanBtn.disabled = true;
+
         locked = false;
       } catch (e) {
         console.error(e);
         setStatus('warn', 'Camera failed. Check permission.');
-        alert("Could not start camera. Check permissions and ensure you're on HTTPS.");
+        alert("Could not start camera. Check permissions and reload.");
       }
     }
 
@@ -279,15 +275,13 @@
       startBtn.disabled = false;
       stopBtn.disabled = true;
       flipBtn.disabled = true;
-      rescanBtn.disabled = !lastValue ? true : false;
+      rescanBtn.disabled = !lastValue;
     }
 
     async function flip() {
       preferredCamera = (preferredCamera === 'environment') ? 'user' : 'environment';
       camLabel.textContent = preferredCamera === 'environment' ? 'Back camera' : 'Front camera';
-      if (scanner && startBtn.disabled) { // currently scanning
-        await scanner.setCamera(preferredCamera);
-      }
+      if (scanner && startBtn.disabled) await scanner.setCamera(preferredCamera);
     }
 
     async function rescan() {
@@ -299,9 +293,8 @@
       if (!lastValue) return;
       try {
         await navigator.clipboard.writeText(lastValue);
-        setStatus('ok', 'Copied to clipboard ✅');
+        setStatus('ok', 'Copied ✅');
       } catch {
-        // fallback for older browsers
         const ta = document.createElement('textarea');
         ta.value = lastValue;
         document.body.appendChild(ta);
@@ -313,8 +306,9 @@
     }
 
     function openLink() {
-      if (!isProbablyUrl(lastValue)) return;
-      window.open(lastValue, '_blank', 'noopener');
+      if (!isUrl(lastValue)) return;
+      // iOS: using same-tab navigation is often smoother
+      window.location.href = lastValue;
     }
 
     startBtn.addEventListener('click', start);
